@@ -1,0 +1,23 @@
+class Config:
+    # 数据库设置
+    DATABASE_URL = 'postgresql+asyncpg://postgres:asdfgff12@36.103.180.62:5009/wurenzhibo'
+
+    # 数据库连接池设置
+    DATABASE_POOL_SIZE = 20
+    DATABASE_MAX_OVERFLOW = 1000
+    DATABASE_POOL_RECYCLE = 1800  # 单位是秒
+
+    # JWT 设置
+    JWT_SECRET_KEY = 'your_secret_key_here'
+    JWT_ACCESS_TOKEN_EXPIRES = 36000000  # 单位是秒
+
+    # 其他服务设置
+    MINIMAX_API_KEY = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJOYW1lIjoiMiIsIlN1YmplY3RJRCI6IjE2OTc5NDU5MzkwNTYwMjYiLCJQaG9uZSI6Ik1UTTFPVE0yTnpJME5UZz0iLCJHcm91cElEIjoiMTY5Nzk0NTkzOTE1NjExNCIsIlBhZ2VOYW1lIjoiIiwiTWFpbCI6IjEwMDUyODA1NTRAcXEuY29tIiwiQ3JlYXRlVGltZSI6IjIwMjMtMTEtMDIgMTg6NDY6NTEiLCJpc3MiOiJtaW5pbWF4In0.xKjhbMKTcNK-jmZX2TtMcTYEbx4Bg_oqOYyNcVpAwQeTz_uES6W2alerXSvpBrilLGkxfERL5okXz9EZOg_ViouvcLptSskxeSUFYtd7or1kYqjjc6BgrPomFs8tMMIdfXT-J2UASnzIpf4kZZb6I6-iy-DUn3mC0zKxNapQltHo2YT5s3X0hEm7ewk7BImZEiuh6798b_xOWgPM5yUEhsg1Vo5xeZhGDDByAacwwfcYxb9jQN321nOParqYiRD5y9Qdg3d1hxFK0rIcn4NGrvIsjVepkdD0_uQvwDlnUxkHRWgqv283-_vaMwKCNlTexMRRDDT0CEnIQZ6FyHpz_g'
+    MINIMAX_GROUP_ID = '1697945939156114'
+    AUDIO_SYNTHESIS_SERVER_URL = 'http://36.103.180.62:5018/predict'
+
+    # 消息代理设置
+    CELERY_BROKER_URL = 'redis://36.103.180.62:5001/0'
+
+# 创建配置实例
+config = Config()

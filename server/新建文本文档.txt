@@ -1,0 +1,294 @@
+<template>
+  <div>
+    <div>
+      <button @click="togglePlay">{{ isPlaying ? "暂停" : "播放" }}</button>
+      <input
+        type="range"
+        min="0"
+        :max="duration"
+        v-model="currentTime"
+        @input="seekAudio"
+      />
+      <span>{{ currentTimeFormatted }}</span> /
+      <span>{{ durationFormatted }}</span>
+    </div>
+    <el-button @click="startDanmuCapture">开启弹幕捕获</el-button>
+    <el-button @click="stopDanmuCapture">停止弹幕捕获</el-button>
+    <!-- <audio ref="audioPlayer" controls style="display: block;"></audio> -->
+    <el-row :gutter="20">
+      <el-col :span="6">
+        <label>音色选择：</label>
+        <el-select v-model="voice" placeholder="请选择音色">
+          <el-option label="beila" value="beila"></el-option>
+          <el-option label="guiji" value="guiji"></el-option>
+          <el-option label="927high" value="927high"></el-option>
+          <el-option label="ziyi" value="ziyi"></el-option>
+          <el-option label="huoguo" value="huoguo"></el-option>
+          <el-option label="shouji" value="shouji"></el-option>
+        </el-select>
+      </el-col>
+      <el-col :span="6">
+        <label>说话速度：</label>
+        <el-select v-model="speechSpeed" placeholder="请选择速度">
+          <el-option label="0.8" value="0.8"></el-option>
+          <el-option label="0.9" value="0.9"></el-option>
+          <el-option label="1.0" value="1.0"></el-option>
+          <el-option label="1.1" value="1.1"></el-option>
+          <el-option label="1.2" value="1.2"></el-option>
+        </el-select>
+      </el-col>
+      <el-col :span="6">
+        <label>播报策略：</label>
+        <el-select v-model="broadcastStrategy" placeholder="请选择策略">
+          <el-option label="随机播报" value="随机播报"></el-option>
+          <el-option label="顺序播报" value="顺序播报"></el-option>
+        </el-select>
+      </el-col>
+      <el-col :span="6">
+        <label>AI重写：</label>
+        <el-select v-model="aiRewrite" placeholder="请选择是否重写">
+          <el-option label="是" value="是"></el-option>
+          <el-option label="否" value="否"></el-option>
+        </el-select>
+      </el-col>
+    </el-row>
+    <el-row :gutter="20" class="mgb20" style="display: none">
+      <el-col :span="12">
+        <label>商品信息：</label>
+        <el-input v-model="productInfo" placeholder="请输入商品信息"></el-input>
+      </el-col>
+      <el-col :span="12">
+        <label>主播角色设定：</label>
+        <el-input v-model="anchorRole" placeholder="请输入主播角色"></el-input>
+      </el-col>
+    </el-row>
+    <el-row>
+      <el-col :span="24">
+        <el-button
+          :type="isBroadcasting ? 'danger' : 'primary'"
+          @click="isBroadcasting ? stopBroadcast() : startBroadcast()"
+        >
+          {{ isBroadcasting ? "停止直播" : "开始直播" }}
+        </el-button>
+        <el-button
+          :type="isDanmuResponding ? 'danger' : 'primary'"
+          @click="
+            isDanmuResponding ? stopDanmuResponse() : startDanmuResponse()
+          "
+        >
+          {{ isDanmuResponding ? "停止弹幕回复" : "开始弹幕回复" }}
+        </el-button>
+      </el-col>
+    </el-row>
+    <el-row>
+      <el-col :span="24">
+        <el-card>
+          <div class="display-box" style="overflow-y: auto; max-height: 200px">
+            <p v-for="(message, index) in messages" :key="index">
+              {{ message }}
+            </p>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onUnmounted, onMounted, nextTick, watch, computed } from "vue";
+import request from "../utils/request"; // 导入封装的 request
+import { ElMessage } from "element-plus";
+import { useBroadcastStore } from "../store/broadcastStore"; // 引入 broadcastStore
+import { storeToRefs } from "pinia";
+
+// 引入 broadcastStore
+const broadcastStore = useBroadcastStore();
+const {
+  isBroadcasting,
+  voice,
+  speechSpeed,
+  broadcastStrategy,
+  aiRewrite,
+  productInfo,
+  anchorRole,
+} = storeToRefs(broadcastStore);
+const { isDanmuResponding } = storeToRefs(broadcastStore);
+//弹幕信息
+const messages = ref<string[]>([]);
+const audioPlayer = broadcastStore.audioPlayer;
+const isPlaying = ref(false);
+const currentTime = ref(0);
+const duration = ref(0);
+// 监听音频加载
+audioPlayer.onloadedmetadata = () => {
+  duration.value = audioPlayer.duration;
+};
+
+// 监听音频播放进度
+audioPlayer.ontimeupdate = () => {
+  currentTime.value = audioPlayer.currentTime;
+};
+
+// 监听播放状态
+audioPlayer.onplay = () => {
+  isPlaying.value = true;
+};
+audioPlayer.onpause = () => {
+  isPlaying.value = false;
+};
+
+// 播放/暂停切换
+const togglePlay = () => {
+  if (audioPlayer.paused) {
+    audioPlayer.play();
+  } else {
+    audioPlayer.pause();
+  }
+};
+
+// 跳转到特定时间
+const seekAudio = () => {
+  audioPlayer.currentTime = currentTime.value;
+};
+
+// 格式化时间显示
+const formatTime = (time) => {
+  // 格式化时间的逻辑，例如转换为 mm:ss 格式
+};
+
+const currentTimeFormatted = computed(() => formatTime(currentTime.value));
+const durationFormatted = computed(() => formatTime(duration.value));
+// 开始直播
+const startBroadcast = async () => {
+  await broadcastStore.startBroadcast({
+    voice: voice.value,
+    speechSpeed: speechSpeed.value,
+    broadcastStrategy: broadcastStrategy.value,
+    aiRewrite: aiRewrite.value === "是",
+    productInfo: "1",
+    anchorRole: "1",
+  });
+
+  if (isBroadcasting.value) {
+    broadcastStore.playNextAudio();
+    await startDanmuResponse(); // 开启弹幕回复
+  }
+};
+
+// 停止直播
+const stopBroadcast = async () => {
+  await broadcastStore.stopBroadcast();
+  await stopDanmuResponse(); // 停止弹幕回复
+  // 清空弹幕信息
+  messages.value = [];
+  // 无需在这里控制 audioPlayer，因为它已经被移动到 store 中
+};
+
+//开始弹幕发送
+const sendDanmu = async (danmuMessage) => {
+  if (danmuMessage.startsWith("弹幕")) {
+    try {
+      const response = await request.post("/receive_danmu", {
+        message: danmuMessage,
+      });
+      if (response.status === 200) {
+        //ElMessage.success("弹幕发送成功");
+      } else {
+        ElMessage.error("弹幕发送失败：" + response.data.message);
+      }
+    } catch (error) {
+      ElMessage.error("弹幕发送失败：" + error.response.data.message);
+    }
+  }
+};
+
+//开始弹幕回复
+const startDanmuResponse = async () => {
+  await broadcastStore.startDanmuResponse();
+};
+
+//停止弹幕回复
+const stopDanmuResponse = async () => {
+  await broadcastStore.stopDanmuResponse();
+  stopDanmuCapture();
+};
+
+// 开启弹幕捕获
+const startDanmuCapture = () => {
+  if (window.qt && window.qt.webChannelTransport) {
+    new QWebChannel(window.qt.webChannelTransport, function (channel) {
+      const bridge = channel.objects.bridge;
+      bridge.startDanmuCapture(); // 开启弹幕捕获
+
+      // 连接新的信号以接收弹幕数据
+      bridge.sendDanmuSignal.connect(function (message) {
+        messages.value.push(message); // 将消息添加到本地状态
+        sendDanmu(message); // 发送弹幕到后端
+        // 在下一个 "tick" 滚动到底部
+        nextTick(() => {
+          const displayBox = document.querySelector(".display-box");
+          if (displayBox) {
+            displayBox.scrollTop = displayBox.scrollHeight;
+          }
+        });
+      });
+    });
+
+    // 添加指导用户操作的弹幕
+    messages.value.push("开启弹幕捕获，弹出控制台后，在浏览器打开直播间");
+  } else {
+    console.error("无法连接到Qt WebChannel");
+  }
+};
+
+// 停止弹幕捕获
+const stopDanmuCapture = () => {
+  if (window.qt && window.qt.webChannelTransport) {
+    new QWebChannel(window.qt.webChannelTransport, function (channel) {
+      const bridge = channel.objects.bridge;
+      bridge.stopDanmuCapture(); // 调用Qt程序中的方法来停止弹幕捕获
+    });
+  } else {
+    console.error("无法连接到Qt WebChannel");
+  }
+};
+
+// 动态加载qwebchannel.js
+onMounted(() => {
+  const script = document.createElement("script");
+  script.src = "/qwebchannel.js"; // 设置qwebchannel.js的正确路径
+  script.onload = () => console.log("qwebchannel.js 加载成功");
+  script.onerror = () => console.error("无法加载qwebchannel.js");
+  document.head.appendChild(script);
+});
+</script>
+
+<style scoped>
+.mgb20 {
+  margin-bottom: 20px;
+}
+
+.display-box {
+  height: 200px; /* 可根据需要调整高度 */
+  background-color: #f0f0f0; /* 背景颜色 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.display-box {
+  /* 确保弹幕显示区域有足够的高度和滚动条 */
+  overflow-y: auto;
+  max-height: 200px; /* 或根据需要调整 */
+  /* 确保内部元素正常流式布局 */
+  display: flex;
+  flex-direction: column;
+}
+
+.display-box p {
+  /* 弹幕文本的样式，确保它们是垂直排列的 */
+  margin: 0; /* 移除默认的外边距可能有帮助 */
+  /* 可以添加其他样式如字体大小、颜色等 */
+}
+</style>
